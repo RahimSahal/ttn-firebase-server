@@ -1,16 +1,19 @@
 const mqtt = require('mqtt');
 const admin = require('firebase-admin');
+const express = require('express');
+
+// Initialize Express
+const app = express();
 
 // Initialize Firebase Admin SDK
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: 'https://fyp1-c7e2b-default-rtdb.firebaseio.com'
-});
+    databaseURL: 'https://fyp1-c7e2b-default-rtdb.firebaseio.com' });
 const db = admin.database();
 const ref = db.ref('sensor_data');
 
-// MQTT Configuration (from your MqttManager.java)
+// MQTT Configuration
 const BROKER = 'tcp://au1.cloud.thethings.network:1883';
 const CLIENT_ID = 'node-server-' + Date.now();
 const USERNAME = 'disaster-system1@ttn';
@@ -47,7 +50,6 @@ client.on('message', (topic, message) => {
             timestamp: Date.now()
         };
 
-        // Save to Firebase with a unique key
         const newRef = ref.push();
         newRef.set(data)
             .then(() => console.log('Data saved to Firebase:', data))
@@ -63,4 +65,10 @@ client.on('error', (err) => {
 
 client.on('close', () => {
     console.log('MQTT connection closed');
+});
+
+// Start HTTP server to satisfy Render's port requirement
+app.get('/', (req, res) => res.send('TTN Firebase Server Running'));
+app.listen(process.env.PORT || 10000, '0.0.0.0', () => {
+    console.log('HTTP server running on port', process.env.PORT || 10000);
 });
